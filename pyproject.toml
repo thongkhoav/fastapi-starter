@@ -11,6 +11,9 @@ dependencies = [
     "oracledb>=1.4.0",
     "python-dotenv>=1.0.0",
     "passlib[bcrypt]>=1.7.4",
+    "pydantic[email]>=2.11.7",
+    "pyjwt[crypto]>=2.10.1",
+    "sqlmodel>=0.0.24",
 ]
 
 [tool.uv]

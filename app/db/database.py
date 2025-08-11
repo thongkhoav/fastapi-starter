@@ -1,12 +1,15 @@
 from app.core.config import settings
-from sqlalchemy import create_engine
+
+# from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlmodel import SQLModel, create_engine
+from app.core.config import DatabaseConfig
 
-engine = create_engine(settings.DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+db_instance = DatabaseConfig()
 
-def get_db():
-    db = SessionLocal()
+
+def get_db_session():
+    db = next(db_instance.get_session())
     try:
         yield db
     finally:
