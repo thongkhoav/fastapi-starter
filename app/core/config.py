@@ -1,37 +1,35 @@
 import os
-from dotenv import load_dotenv
 from sqlmodel import SQLModel, create_engine, Session
 from typing import Generator
 
-load_dotenv()
+from app.core.environment import Environment
+
+read_env = Environment()
 
 
 class DatabaseConfig:
     def __init__(self):
-        ORACLE_USER: str = os.getenv("ORACLE_USER")
-        ORACLE_PASSWORD: str = os.getenv("ORACLE_PASSWORD")
-        ORACLE_HOST: str = os.getenv("ORACLE_HOST")
-        ORACLE_PORT: str = os.getenv("ORACLE_PORT")
-        ORACLE_SERVICE_NAME: str = os.getenv("ORACLE_SERVICE_NAME")
-        ORACLE_ROLE: str = os.getenv("ORACLE_ROLE", "SYSDBA")
+        PG_USER: str = read_env.PG_USER
+        PG_PASSWORD: str = read_env.PG_PASSWORD
+        PG_HOST: str = read_env.PG_HOST
+        PG_PORT: int = read_env.PG_PORT
+        PG_DATABASE: str = read_env.PG_DATABASE
 
         # Database URL
-        self.DATABASE_URL = f"oracle+oracledb://{self.ORACLE_USER}:{self.ORACLE_PASSWORD}@{self.ORACLE_HOST}:{self.ORACLE_PORT}/?service_name={self.ORACLE_SERVICE_NAME}&mode={self.ORACLE_ROLE}"
+        self.DATABASE_URL = f"postgresql+psycopg://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{PG_DATABASE}"
+        print("database url" + self.DATABASE_URL)
 
         # Create the database engine
         self.engine = create_engine(self.DATABASE_URL, echo=True)
 
     def create_db_and_tables(self):
         # Import models here to avoid circular imports
-        from models.user import User
-
-        # from models.book import Book
-        # from models.category import Category
-        # from models.author import Author
-        # from models.order import Order
-        # from models.order_item import OrderItem
-        # from models.review import Review
-        # from models.discount import Discount
+        from app.models.user import User
+        from app.models.room import Room
+        from app.models.task import Task
+        from app.models.user_room import UserRoom
+        from app.models.notification import Notification
+        from app.models.login_session import LoginSession
 
         # Create tables
         SQLModel.metadata.create_all(self.engine)

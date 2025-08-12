@@ -1,5 +1,6 @@
 from fastapi import HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
+from app.core.environment import Environment
 from app.schemas.user.login_schema import LoginRequest, LoginResponse
 from app.schemas.user.signup_schema import SignupRequest
 from app.utils import password
@@ -7,22 +8,21 @@ from sqlalchemy.orm import Session
 from app.services import user_service
 from app.schemas.user.user_schema import UserCreate, UserDBCreate
 import uuid
-from dotenv import load_dotenv
 import os
 
 # Load environment variables
-load_dotenv()
+read_env = Environment()
 
 # Token secret
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
-REFRESH_TOKEN_EXPIRE_MINUTES = int(os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(read_env.ACCESS_TOKEN_EXPIRE_MINUTES)
+REFRESH_TOKEN_EXPIRE_MINUTES = int(read_env.REFRESH_TOKEN_EXPIRE_MINUTES)
 
 # Cookie settings
-COOKIE_SECURE = os.getenv("COOKIE_SECURE", "False").lower() in ("true", "1", "yes")
-COOKIE_HTTPONLY = os.getenv("COOKIE_HTTPONLY", "True").lower() in ("true", "1", "yes")
-COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "Lax")
-COOKIE_ACCESS_TOKEN_NAME = os.getenv("COOKIE_ACCESS_TOKEN_NAME")
-COOKIE_REFRESH_TOKEN_NAME = os.getenv("COOKIE_REFRESH_TOKEN_NAME")
+COOKIE_SECURE = read_env.COOKIE_SECURE
+COOKIE_HTTPONLY = read_env.COOKIE_HTTPONLY
+COOKIE_SAMESITE = read_env.COOKIE_SAMESITE
+COOKIE_ACCESS_TOKEN_NAME = read_env.COOKIE_ACCESS_TOKEN_NAME
+COOKIE_REFRESH_TOKEN_NAME = read_env.COOKIE_REFRESH_TOKEN_NAME
 
 
 def signup_controller(db: Session, user_data: SignupRequest):
@@ -34,7 +34,9 @@ def signup_controller(db: Session, user_data: SignupRequest):
     # Hash the password before saving
     hashed_password = password.hash_password(user_data.password)
     user_create: UserDBCreate = UserDBCreate(
-        name=user_data.name, email=user_data.email, password=hashed_password
+        full_name=user_data.full_name,
+        email=user_data.email,
+        hashed_password=hashed_password,
     )
     return user_service.create_user(db, user_create)
 
@@ -55,7 +57,7 @@ def login_controller(
     access_token_payload = {
         "sub": user.email,
         "user_id": user.id,
-        "fullName": user.fullName,
+        "full_name": user.full_name,
         "role": user.role,
     }
     access_token = user_service.create_access_token(access_token_payload)
