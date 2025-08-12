@@ -17,6 +17,11 @@ read_env = Environment()
 # OAuth2 scheme for token extraction
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
+# Flow of getting user:
+# 1. get_current_active_user
+# 2. get_current_user
+# 3. get_current_user_from_token_or_cookie
+
 
 async def get_current_user(
     access_token: str = Depends(oauth2_scheme), db: Session = Depends(get_db_session)
