@@ -16,6 +16,10 @@ class Environment(BaseSettings):
     ALGORITHM: str = "HS256"
     REFRESH_TOKEN_SECRET_KEY: str = "your_refresh_secret_key"
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 600  # in minutes
+    JWT_RESET_SECRET: str = (
+        "your_jwt_reset_secret"  # Secret for JWT reset password token
+    )
+    JWT_RESET_DURATION: str = "15m"  # Duration for reset password token
 
     COOKIE_ACCESS_TOKEN_NAME: str = "access_token"
     COOKIE_REFRESH_TOKEN_NAME: str = "refresh_token"
@@ -29,6 +33,7 @@ class Environment(BaseSettings):
     ENVIRONMENT: str = "development"
     SEED_ON_STARTUP: bool = False
     OVERWRITE_DB: bool = False
+    INVITE_PREFIX: str = "task_app/invite"
 
     FRONTEND_URL: str = "http://localhost:3000"
 
