@@ -1,11 +1,11 @@
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session, aliased, joinedload
 from app.core.environment import Environment
 from app.models.room import Room
 from app.models.user import User
 from app.models.user_room import UserRoom
 from app.schemas.room.create_room_schema import (
     CreateRoomRequest,
-    CreateRoomResponse,
+    RoomInfoResponse,
     RoomOwner,
 )
 from app.schemas.user.user_schema import BasicUser, CurrentUser
@@ -18,7 +18,7 @@ read_env = Environment()
 # Handler
 def create_room(
     db: Session, create_room: CreateRoomRequest, current_user: CurrentUser
-) -> CreateRoomResponse:
+) -> RoomInfoResponse:
     # Create room
     invite_code = str(uuid.uuid4())
     db_room = Room(
@@ -34,7 +34,7 @@ def create_room(
     db.add(db_user_room)
     db.commit()
     db.refresh(db_room)
-    return CreateRoomResponse(
+    return RoomInfoResponse(
         id=db_room.id if db_room.id is not None else 0,
         name=db_room.name,
         description=db_room.description,
@@ -52,6 +52,16 @@ def is_room_member_by_email(db: Session, room_id: int, email: str) -> bool:
         db.query(UserRoom)
         .join(User, UserRoom.user_id == User.id)  # type: ignore
         .filter(UserRoom.room_id == room_id, User.email == email)  # type: ignore
+        .first()
+        is not None
+    )
+
+
+def is_room_member_by_id(db: Session, room_id: int, user_id: str) -> bool:
+    return (
+        db.query(UserRoom)
+        .join(User, UserRoom.user_id == User.id)  # type: ignore
+        .filter(UserRoom.room_id == room_id, User.id == user_id)  # type: ignore
         .first()
         is not None
     )
@@ -83,3 +93,16 @@ def get_user_rooms(db: Session, user_id: int):
         {"room": room, "owner": BasicUser.model_validate(owner)}
         for room, owner in results
     ]
+
+
+def get_room_by_id(db: Session, room_id: int):
+    result = db.query(UserRoom).options(joinedload(UserRoom.user), joinedload(UserRoom.room)).filter(UserRoom.room_id == room_id, UserRoom.is_owner == True).first()  # type: ignore
+    if result is None or result.room is None:
+        return None
+    return RoomInfoResponse(
+        id=result.room_id if result.room_id is not None else 0,
+        name=result.room.name,
+        description=result.room.description,
+        owner=RoomOwner.model_validate(result.user),
+        invite_code=result.room.invite_code,
+    )

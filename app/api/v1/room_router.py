@@ -44,4 +44,4 @@ def get_room(
     db: Session = Depends(get_db_session),
     current_user: CurrentUser = Depends(get_current_user_from_token_or_cookie),
 ):
-    return room_controller.get_user_rooms(db, current_user.id)
+    return room_controller.get_room(db, room_id, current_user.id)

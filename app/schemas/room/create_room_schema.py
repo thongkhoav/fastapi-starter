@@ -12,7 +12,7 @@ class RoomOwner(BaseModel):
     full_name: str
 
 
-class CreateRoomResponse(BaseModel):
+class RoomInfoResponse(BaseModel):
     id: int
     name: str
     description: str

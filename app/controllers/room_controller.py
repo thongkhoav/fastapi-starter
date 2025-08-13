@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from app.schemas.room.create_room_schema import CreateRoomRequest
 from sqlalchemy.orm import Session
 from app.services import room_service
@@ -10,3 +11,15 @@ def create_room(db: Session, room_dto: CreateRoomRequest, current_user: CurrentU
 
 def get_user_rooms(db: Session, user_id: int):
     return room_service.get_user_rooms(db, user_id)
+
+
+def get_room(db: Session, room_id: int, user_id: int):
+    is_room_member = room_service.is_room_member_by_id(
+        db, room_id, user_id=str(user_id)
+    )
+    if not is_room_member:
+        raise HTTPException(
+            status_code=403,
+            detail="Not a member of the room",
+        )
+    return room_service.get_room_by_id(db, room_id)
