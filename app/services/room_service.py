@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy.orm import Session, aliased, joinedload
 from app.core.environment import Environment
 from app.models.room import Room
@@ -16,6 +17,37 @@ read_env = Environment()
 
 
 # Handler
+def add_member_validator(db: Session, current_user_id: int, email: str, room_id: int):
+    is_owner = is_room_owner(db, room_id, current_user_id)
+    if not is_owner:
+        raise HTTPException(
+            status_code=403,
+            detail="Not a owner of the room",
+        )
+
+
+def add_member_by_email(db: Session, room_id: int, email: str):
+    db_user = db.query(User).filter(User.email == email).first()  # type: ignore
+    if not db_user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found",
+        )
+    db_user_room = UserRoom(user_id=db_user.id, room_id=room_id, is_owner=False)
+    db.add(db_user_room)
+    db.commit()
+    db.refresh(db_user_room)
+
+
+def is_room_owner(db: Session, room_id: int, user_id: int) -> bool:
+    return (
+        db.query(UserRoom)
+        .filter(UserRoom.room_id == room_id, UserRoom.user_id == user_id, UserRoom.is_owner == True)  # type: ignore
+        .first()
+        is not None
+    )
+
+
 def create_room(
     db: Session, create_room: CreateRoomRequest, current_user: CurrentUser
 ) -> RoomInfoResponse:

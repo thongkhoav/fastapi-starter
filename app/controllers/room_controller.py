@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+from app.schemas.response.message_response import MessageResponse
 from app.schemas.room.create_room_schema import CreateRoomRequest
 from sqlalchemy.orm import Session
 from app.services import room_service
@@ -23,3 +24,9 @@ def get_room(db: Session, room_id: int, user_id: int):
             detail="Not a member of the room",
         )
     return room_service.get_room_by_id(db, room_id)
+
+
+def add_member_by_email(db: Session, room_id: int, email: str, current_user_id: int):
+    room_service.add_member_validator(db, current_user_id, email, room_id)
+    room_service.add_member_by_email(db, room_id, email)
+    return MessageResponse(message="User added to room successfully")
