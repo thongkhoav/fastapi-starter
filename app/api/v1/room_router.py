@@ -4,6 +4,7 @@ from app.middlewares.auth_middleware import get_current_user_from_token_or_cooki
 from app.models.user import User
 from app.schemas.room.add_room_member import AddRoomMemberRequest
 from app.schemas.room.create_room_schema import CreateRoomRequest
+from app.schemas.room.join_room import JoinRoomRequest
 from app.schemas.user.user_schema import CurrentUser, UserResponse
 from app.schemas.user.signup_schema import SignupRequest
 from app.schemas.user.login_schema import LoginResponse
@@ -27,6 +28,13 @@ def add_member_by_mail(
 
 
 # Post, join-by-invite
+@router.post("/join-by-invite")
+def join_room_by_invite(
+    body: JoinRoomRequest,
+    db: Session = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user_from_token_or_cookie),
+):
+    return room_controller.join_room(db, body.invite_path, current_user.id)
 
 
 # Post, /
@@ -39,7 +47,16 @@ def create_room(
     return room_controller.create_room(db, room_dto, current_user)
 
 
-# Get users of room,/:roomId/users
+# Get users of room, /:roomId/users
+@router.get("/{room_id}/users")
+def get_room_users(
+    room_id: int,
+    include_owner: bool = True,
+    db: Session = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user_from_token_or_cookie),
+):
+    return room_controller.get_room_users(db, room_id, include_owner)
+
 
 # Delete room, :roomId
 

@@ -9,6 +9,7 @@ from app.schemas.room.create_room_schema import (
     RoomInfoResponse,
     RoomOwner,
 )
+from app.schemas.room.room_schema import RoomUser
 from app.schemas.user.user_schema import BasicUser, CurrentUser
 import uuid
 
@@ -17,6 +18,56 @@ read_env = Environment()
 
 
 # HANDLER
+
+
+# Check start with INVITE_PREFIX
+# Check if user exists, email is valid
+# Check if user is already a member
+def join_room_validator(
+    db: Session,
+    invite_path: str,
+    current_user_id: int,
+):
+    if not invite_path.startswith(read_env.INVITE_PREFIX):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid invite path",
+        )
+    uuid_invite_code = invite_path.split("/")[-1]
+    print("uuid_invite_code", uuid_invite_code)
+    # Check if room exists
+    room = db.query(Room).filter(Room.invite_code == uuid_invite_code).first()  # type: ignore
+    if not room:
+        raise HTTPException(
+            status_code=404,
+            detail="Room not found",
+        )
+
+    # Check if user is already a member
+    is_joined = db.query(UserRoom).filter(UserRoom.room_id == room.id, current_user_id == UserRoom.user_id).first()  # type: ignore
+    if is_joined:
+        raise HTTPException(
+            status_code=400,
+            detail="User is already a member of the room",
+        )
+
+
+def join_room(
+    db: Session,
+    invite_path: str,
+    current_user_id: int,
+):
+    uuid_invite_code = invite_path.split("/")[-1]
+    room = db.query(Room).filter(Room.invite_code == uuid_invite_code).first()  # type: ignore
+    if not room:
+        raise HTTPException(
+            status_code=404,
+            detail="Room not found",
+        )
+    db_user_room = UserRoom(user_id=current_user_id, room_id=room.id, is_owner=False)
+    db.add(db_user_room)
+    db.commit()
+    db.refresh(db_user_room)
 
 
 # Check room is existingq
@@ -174,3 +225,11 @@ def get_room_by_id(db: Session, room_id: int):
         ),
         invite_path=f"{read_env.INVITE_PREFIX}/{result.room.invite_code}",
     )
+
+
+def get_room_users(db: Session, room_id: int, include_owner: bool = False):
+    query = db.query(User, UserRoom.is_owner).join(UserRoom).filter(UserRoom.room_id == room_id)  # type: ignore
+    if not include_owner:
+        query = query.filter(UserRoom.is_owner == False)  # type: ignore
+    results = query.all()  # type: ignore
+    return [RoomUser(user=user, is_owner=is_owner) for user, is_owner in results]

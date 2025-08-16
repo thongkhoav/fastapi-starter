@@ -28,3 +28,13 @@ def add_member_by_email(db: Session, room_id: int, email: str, current_user_id: 
     room_service.add_member_validator(db, current_user_id, email, room_id)
     room_service.add_member_by_email(db, room_id, email)
     return MessageResponse(message="User added to room successfully")
+
+
+def join_room(db: Session, invite_path: str, user_id: int):
+    room_service.join_room_validator(db, invite_path, user_id)
+    room_service.join_room(db, invite_path, user_id)
+    return MessageResponse(message="User joined the room successfully")
+
+
+def get_room_users(db: Session, room_id: int, include_owner: bool = False):
+    return room_service.get_room_users(db, room_id, include_owner)
