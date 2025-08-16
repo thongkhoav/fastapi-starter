@@ -9,7 +9,6 @@ from app.schemas.user.user_schema import CurrentUser
 from app.services.user_service import get_user_by_email
 import jwt
 from fastapi.logger import logger
-from app.utils.path.auth_path import AuthPath
 from app.schemas.user.token_schema import AccessTokenPayload
 
 # Load environment variables

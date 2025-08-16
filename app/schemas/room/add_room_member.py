@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class AddRoomMemberRequest(BaseModel):
-    email: str
+    email: EmailStr

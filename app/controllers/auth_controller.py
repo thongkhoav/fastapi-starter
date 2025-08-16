@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from app.services import user_service
 from app.schemas.user.user_schema import UserCreate, UserDBCreate
 import uuid
-import os
 
 # Load environment variables
 read_env = Environment()

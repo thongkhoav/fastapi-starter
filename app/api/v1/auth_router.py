@@ -8,7 +8,6 @@ from app.db.database import get_db_session
 from app.services import user_service as user_service
 from app.controllers import auth_controller
 from fastapi.security import OAuth2PasswordRequestForm
-from app.utils.path.auth_path import AuthPath
 
 router = APIRouter(prefix="/auth")
 

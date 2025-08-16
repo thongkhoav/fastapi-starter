@@ -15,9 +15,7 @@ def get_user_rooms(db: Session, user_id: int):
 
 
 def get_room(db: Session, room_id: int, user_id: int):
-    is_room_member = room_service.is_room_member_by_id(
-        db, room_id, user_id=str(user_id)
-    )
+    is_room_member = room_service.is_room_member_by_id(db, room_id, user_id)
     if not is_room_member:
         raise HTTPException(
             status_code=403,

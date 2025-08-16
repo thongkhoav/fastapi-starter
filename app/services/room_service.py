@@ -16,8 +16,39 @@ import uuid
 read_env = Environment()
 
 
-# Handler
+# HANDLER
+
+
+# Check room is existingq
+# Check if user exists, email is valid
+# Check if user is already a member
+# Check if current user is owner
 def add_member_validator(db: Session, current_user_id: int, email: str, room_id: int):
+    # Check if room exists
+    room = db.query(Room).filter(Room.id == room_id).first()  # type: ignore
+    if not room:
+        raise HTTPException(
+            status_code=404,
+            detail="Room not found",
+        )
+
+    # Check if user exists, email is valid
+    user = db.query(User).filter(User.email == email).first()  # type: ignore
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found",
+        )
+
+    # Check if user is already a member
+    is_added = db.query(UserRoom).filter(UserRoom.room_id == room_id, user.id == UserRoom.user_id).first()  # type: ignore
+    if is_added:
+        raise HTTPException(
+            status_code=400,
+            detail="User is already a member of the room",
+        )
+
+    # Check if current user is owner
     is_owner = is_room_owner(db, room_id, current_user_id)
     if not is_owner:
         raise HTTPException(
@@ -75,7 +106,7 @@ def create_room(
             email=current_user.email,
             full_name=current_user.full_name,
         ),
-        invite_code=f"{read_env.INVITE_PREFIX}/{db_room.invite_code}",
+        invite_path=f"{read_env.INVITE_PREFIX}/{db_room.invite_code}",
     )
 
 
@@ -89,11 +120,11 @@ def is_room_member_by_email(db: Session, room_id: int, email: str) -> bool:
     )
 
 
-def is_room_member_by_id(db: Session, room_id: int, user_id: str) -> bool:
+def is_room_member_by_id(db: Session, room_id: int, user_id: int) -> bool:
+    print("check room member", room_id, user_id)
     return (
         db.query(UserRoom)
-        .join(User, UserRoom.user_id == User.id)  # type: ignore
-        .filter(UserRoom.room_id == room_id, User.id == user_id)  # type: ignore
+        .filter(UserRoom.room_id == room_id, UserRoom.user_id == user_id)  # type: ignore
         .first()
         is not None
     )
@@ -129,12 +160,17 @@ def get_user_rooms(db: Session, user_id: int):
 
 def get_room_by_id(db: Session, room_id: int):
     result = db.query(UserRoom).options(joinedload(UserRoom.user), joinedload(UserRoom.room)).filter(UserRoom.room_id == room_id, UserRoom.is_owner == True).first()  # type: ignore
-    if result is None or result.room is None:
+    if result is None or result.room is None or result.user is None:
         return None
+    print("owner user", result.user)
     return RoomInfoResponse(
         id=result.room_id if result.room_id is not None else 0,
         name=result.room.name,
         description=result.room.description,
-        owner=RoomOwner.model_validate(result.user),
-        invite_code=result.room.invite_code,
+        owner=RoomOwner(
+            id=result.user.id if result.user.id is not None else 0,
+            email=result.user.email,
+            full_name=result.user.full_name,
+        ),
+        invite_path=f"{read_env.INVITE_PREFIX}/{result.room.invite_code}",
     )

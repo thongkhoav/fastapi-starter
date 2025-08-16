@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+from typing import Optional
+from pydantic import BaseModel, EmailStr, Field
 
 
 class CreateRoomRequest(BaseModel):
@@ -17,7 +18,7 @@ class RoomInfoResponse(BaseModel):
     name: str
     description: str
     owner: RoomOwner
-    invite_code: str
+    invite_path: str
 
     class Config:
         from_attributes = True
