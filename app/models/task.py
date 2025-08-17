@@ -1,9 +1,9 @@
 from enum import Enum
 from uuid import uuid4
 
-from sqlalchemy import CheckConstraint
+from sqlalchemy import CheckConstraint, DateTime
 from typing import TYPE_CHECKING, Optional
-from datetime import date
+from datetime import datetime
 from sqlmodel import Field, SQLModel, Relationship, String, Column
 
 if TYPE_CHECKING:
@@ -24,7 +24,9 @@ class Task(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str = Field(sa_column=Column(String(255), nullable=False))
     description: Optional[str] = Field(sa_column=Column(String(1000), nullable=True))
-    due_date: date = Field(default=date.today, nullable=False)
+    due_date: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
     status: TaskStatus = Field(
         default=TaskStatus.TODO, sa_column=Column(String(20), nullable=False)
     )

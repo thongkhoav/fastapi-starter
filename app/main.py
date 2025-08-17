@@ -6,6 +6,7 @@ from app.core.config import DatabaseConfig
 from app.core.environment import Environment
 from app.api.v1 import auth_router
 from app.api.v1 import room_router
+from app.api.v1 import task_router
 from app.api.v1 import health_check
 from fastapi.logger import logger
 from pydantic_settings import BaseSettings
@@ -63,3 +64,4 @@ def get_env_path():
 app.include_router(health_check.router, prefix="/api/v1", tags=["health_check"])
 app.include_router(auth_router.router, prefix="/api/v1", tags=["auth"])
 app.include_router(room_router.router, prefix="/api/v1", tags=["rooms"])
+app.include_router(task_router.router, prefix="/api/v1", tags=["tasks"])
