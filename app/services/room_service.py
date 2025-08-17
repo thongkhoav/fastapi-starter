@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session, aliased, joinedload
 from app.core.environment import Environment
 from app.models.room import Room
+from app.models.task import Task
 from app.models.user import User
 from app.models.user_room import UserRoom
 from app.schemas.room.create_room_schema import (
@@ -9,6 +10,7 @@ from app.schemas.room.create_room_schema import (
     RoomInfoResponse,
     RoomOwner,
 )
+from app.schemas.room.remove_member import RemoveRoomMemberRequest
 from app.schemas.room.room_schema import RoomUser
 from app.schemas.user.user_schema import BasicUser, CurrentUser
 import uuid
@@ -122,12 +124,10 @@ def add_member_by_email(db: Session, room_id: int, email: str):
 
 
 def is_room_owner(db: Session, room_id: int, user_id: int) -> bool:
-    return (
-        db.query(UserRoom)
-        .filter(UserRoom.room_id == room_id, UserRoom.user_id == user_id, UserRoom.is_owner == True)  # type: ignore
-        .first()
-        is not None
-    )
+    # print("check room owner", room_id, user_id)
+    user_room = db.query(UserRoom).filter(UserRoom.room_id == room_id, UserRoom.user_id == user_id, UserRoom.is_owner == True).first()  # type: ignore
+    # print("data", user_room)
+    return user_room is not None
 
 
 def create_room(
@@ -233,3 +233,57 @@ def get_room_users(db: Session, room_id: int, include_owner: bool = False):
         query = query.filter(UserRoom.is_owner == False)  # type: ignore
     results = query.all()  # type: ignore
     return [RoomUser(user=user, is_owner=is_owner) for user, is_owner in results]
+
+
+def delete_room(db: Session, room_id: int, current_user_id: int):
+    # Check room owner
+    is_owner = is_room_owner(db, room_id, current_user_id)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Not the room owner")
+    # Check if room exists
+    room = db.query(Room).filter(Room.id == room_id).first()  # type: ignore
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    # Remove room
+    # remove user_room, then remove tasks
+    db.query(UserRoom).filter(UserRoom.room_id == room_id).delete()  # type: ignore
+    db.query(Task).filter(Task.room_id == room_id).delete()  # type: ignore
+    db.delete(room)
+    db.commit()
+
+
+def remove_member(
+    db: Session, room_id: int, body: RemoveRoomMemberRequest, current_user_id: int
+):
+    # Check if room exists
+    room = db.query(Room).filter(Room.id == room_id).first()  # type: ignore
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    # Check room owner
+    is_owner = is_room_owner(db, room_id, current_user_id)
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Not the room owner")
+
+    if not body.remove_all and body.user_id is not None:
+        # Check if user is in room
+        is_member = is_room_member_by_id(db, room_id, body.user_id)
+        if not is_member:
+            raise HTTPException(status_code=404, detail="User not found in room")
+
+        if is_room_owner(db, room_id, body.user_id):
+            raise HTTPException(status_code=403, detail="Cannot remove room owner")
+
+        # Remove member with assigned tasks also
+        db.query(Task).filter(Task.room_id == room_id, Task.user_id == body.user_id).delete()  # type: ignore
+        db.query(UserRoom).filter(
+            UserRoom.room_id == room_id,  # type: ignore
+            UserRoom.user_id == body.user_id,  # type: ignore
+            UserRoom.is_owner == False,  # type: ignore
+        ).delete()
+    else:
+        # Remove all members except owners and delete associated tasks
+        db.query(Task).filter(Task.room_id == room_id, Task.user_id != current_user_id).delete()  # type: ignore
+        db.query(UserRoom).filter(UserRoom.room_id == room_id, UserRoom.is_owner == False).delete()  # type: ignore
+    db.commit()

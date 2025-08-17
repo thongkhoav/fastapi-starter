@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from app.schemas.response.message_response import MessageResponse
 from app.schemas.room.create_room_schema import CreateRoomRequest
 from sqlalchemy.orm import Session
+from app.schemas.room.remove_member import RemoveRoomMemberRequest
 from app.services import room_service
 from app.schemas.user.user_schema import CurrentUser
 
@@ -38,3 +39,15 @@ def join_room(db: Session, invite_path: str, user_id: int):
 
 def get_room_users(db: Session, room_id: int, include_owner: bool = False):
     return room_service.get_room_users(db, room_id, include_owner)
+
+
+def delete_room(db: Session, room_id: int, current_user_id: int):
+    room_service.delete_room(db, room_id, current_user_id)
+    return MessageResponse(message="Room deleted successfully")
+
+
+def remove_member(
+    db: Session, room_id: int, body: RemoveRoomMemberRequest, current_user_id: int
+):
+    room_service.remove_member(db, room_id, body, current_user_id)
+    return MessageResponse(message="User removed from room successfully")

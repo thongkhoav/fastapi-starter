@@ -5,6 +5,7 @@ from app.models.user import User
 from app.schemas.room.add_room_member import AddRoomMemberRequest
 from app.schemas.room.create_room_schema import CreateRoomRequest
 from app.schemas.room.join_room import JoinRoomRequest
+from app.schemas.room.remove_member import RemoveRoomMemberRequest
 from app.schemas.user.user_schema import CurrentUser, UserResponse
 from app.schemas.user.signup_schema import SignupRequest
 from app.schemas.user.login_schema import LoginResponse
@@ -59,8 +60,25 @@ def get_room_users(
 
 
 # Delete room, :roomId
+@router.delete("/{room_id}")
+def delete_room(
+    room_id: int,
+    db: Session = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user_from_token_or_cookie),
+):
+    return room_controller.delete_room(db, room_id, current_user.id)
+
 
 #  Delete('/:roomId/remove-member')
+@router.delete("/{room_id}/remove-member")
+def remove_member(
+    room_id: int,
+    body: RemoveRoomMemberRequest,
+    db: Session = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user_from_token_or_cookie),
+):
+    return room_controller.remove_member(db, room_id, body, current_user.id)
+
 
 # @Put('/:roomId/leave')
 
