@@ -11,3 +11,4 @@ class TaskItemResponse(BaseModel):
     description: Optional[str] = None
     due_date: str
     user: Optional[BasicUser] = None
+    status: str

@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.user_room import UserRoom
 from app.schemas.task.create_task import CreateTaskRequest
 from app.schemas.task.task import TaskItemResponse
+from app.schemas.task.update_status import UpdateTaskStatusRequest
 from app.schemas.task.update_task import UpdateTaskrequest
 from app.schemas.user.user_schema import BasicUser
 from app.services import room_service
@@ -124,6 +125,43 @@ def update_task(
     return db_task
 
 
+def update_task_status(
+    db: Session,
+    task_id: int,
+    dto: UpdateTaskStatusRequest,
+    current_user_id: int,
+):
+    db_task = db.query(Task).filter(Task.id == task_id).first()  # type: ignore
+    if not db_task or db_task.room_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
+        )
+
+    # Check status value is in pre-defined Enum
+    if dto.status not in TaskStatus:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid status value",
+        )
+
+    # Check current user is owner or current user is assigned to the task
+    is_owner = room_service.is_room_owner(db, db_task.room_id, current_user_id)
+    is_assigned = db_task.user_id == current_user_id
+    if not is_owner and not is_assigned:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to update task status",
+        )
+    # Update task status
+
+    db_task.status = dto.status
+    db.add(db_task)
+    db.commit()
+    db.refresh(db_task)
+    return db_task
+
+
 def get_tasks(db: Session, room_id: int, user_id: Optional[int] = None):
     query = db.query(Task).options(joinedload(Task.user)).filter(Task.room_id == room_id)  # type: ignore
     if user_id:
@@ -146,6 +184,7 @@ def get_tasks(db: Session, room_id: int, user_id: Optional[int] = None):
                 title=task.title,
                 description=task.description,
                 due_date=task.due_date.isoformat(),
+                status=task.status,
                 user=user,
             )
         )
