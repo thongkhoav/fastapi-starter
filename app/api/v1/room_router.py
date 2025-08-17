@@ -81,6 +81,14 @@ def remove_member(
 
 
 # @Put('/:roomId/leave')
+@router.put("/{room_id}/leave")
+def leave_room(
+    room_id: int,
+    db: Session = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user_from_token_or_cookie),
+):
+    return room_controller.leave_room(db, room_id, current_user.id)
+
 
 # @Put('/:roomId'), update room
 

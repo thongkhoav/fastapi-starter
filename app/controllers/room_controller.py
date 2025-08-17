@@ -51,3 +51,8 @@ def remove_member(
 ):
     room_service.remove_member(db, room_id, body, current_user_id)
     return MessageResponse(message="User removed from room successfully")
+
+
+def leave_room(db: Session, room_id: int, current_user_id: int):
+    room_service.leave_room(db, room_id, current_user_id)
+    return MessageResponse(message="User left the room successfully")

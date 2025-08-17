@@ -1,4 +1,4 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, aliased, joinedload
 from app.core.environment import Environment
 from app.models.room import Room
@@ -276,7 +276,7 @@ def remove_member(
             raise HTTPException(status_code=403, detail="Cannot remove room owner")
 
         # Remove member with assigned tasks also
-        db.query(Task).filter(Task.room_id == room_id, Task.user_id == body.user_id).delete()  # type: ignore
+        db.query(Task).filter(Task.room_id == room_id, Task.user_id == body.user_id).update({Task.user_id: None})  # type: ignore
         db.query(UserRoom).filter(
             UserRoom.room_id == room_id,  # type: ignore
             UserRoom.user_id == body.user_id,  # type: ignore
@@ -284,6 +284,31 @@ def remove_member(
         ).delete()
     else:
         # Remove all members except owners and delete associated tasks
-        db.query(Task).filter(Task.room_id == room_id, Task.user_id != current_user_id).delete()  # type: ignore
+        db.query(Task).filter(Task.room_id == room_id, Task.user_id != current_user_id).update({Task.user_id: None})  # type: ignore
         db.query(UserRoom).filter(UserRoom.room_id == room_id, UserRoom.is_owner == False).delete()  # type: ignore
+    db.commit()
+
+
+def leave_room(db: Session, room_id: int, current_user_id: int):
+    # Check if room exists
+    room = db.query(Room).filter(Room.id == room_id).first()  # type: ignore
+    if not room:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Room not found"
+        )
+    print("room user ", room_id, current_user_id)
+    # Check room owner
+    is_owner = is_room_owner(db, room_id, current_user_id)
+    if is_owner:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Room owner cannot leave the room",
+        )
+
+    db.query(Task).filter(Task.room_id == room_id, Task.user_id == current_user_id).update({Task.user_id: None})  # type: ignore
+    db.query(UserRoom).filter(
+        UserRoom.room_id == room_id,  # type: ignore
+        UserRoom.user_id == current_user_id,  # type: ignore
+        UserRoom.is_owner == False,  # type: ignore
+    ).delete()
     db.commit()
