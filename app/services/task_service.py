@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, aliased, joinedload
 from app.core.environment import Environment
@@ -7,6 +8,8 @@ from app.models.task import Task, TaskStatus
 from app.models.user import User
 from app.models.user_room import UserRoom
 from app.schemas.task.create_task import CreateTaskRequest
+from app.schemas.task.task import TaskItemResponse
+from app.schemas.user.user_schema import BasicUser
 from app.services import room_service
 
 # Environment variables
@@ -72,3 +75,31 @@ def create_task(
     db.commit()
     db.refresh(db_task)
     return db_task
+
+
+def get_tasks(db: Session, room_id: int, user_id: Optional[int] = None):
+    query = db.query(Task).options(joinedload(Task.user)).filter(Task.room_id == room_id)  # type: ignore
+    if user_id:
+        query = query.filter(Task.user_id == user_id)  # type: ignore
+    tasks = query.all()
+
+    # Format to response
+    response = []
+    for task in tasks:
+        user = None
+        if task.user and task.user.id:
+            user = BasicUser(
+                id=task.user.id,
+                email=task.user.email,
+                full_name=task.user.full_name,
+            )
+        response.append(
+            TaskItemResponse(
+                id=task.id,  # type: ignore
+                title=task.title,
+                description=task.description,
+                due_date=task.due_date.isoformat(),
+                user=user,
+            )
+        )
+    return response

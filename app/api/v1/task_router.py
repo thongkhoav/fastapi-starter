@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, Response, Request
 from sqlalchemy.orm import Session
 from app.middlewares.auth_middleware import get_current_user_from_token_or_cookie
@@ -27,6 +28,15 @@ def create_task(
 
 
 # Get tasks of user
+@router.get("/room/{room_id}")
+def get_tasks(
+    room_id: int,
+    user_id: Optional[int] = None,
+    db: Session = Depends(get_db_session),
+    _: CurrentUser = Depends(get_current_user_from_token_or_cookie),
+):
+    return task_controller.get_tasks(db, room_id, user_id)
+
 
 # Update task
 
