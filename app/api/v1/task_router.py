@@ -8,6 +8,7 @@ from app.schemas.room.create_room_schema import CreateRoomRequest
 from app.schemas.room.join_room import JoinRoomRequest
 from app.schemas.room.remove_member import RemoveRoomMemberRequest
 from app.schemas.room.update_room_schema import UpdateRoomRequest
+from app.schemas.task.assign_task import AssignTaskRequest
 from app.schemas.task.create_task import CreateTaskRequest
 from app.schemas.task.update_status import UpdateTaskStatusRequest
 from app.schemas.task.update_task import UpdateTaskrequest
@@ -52,6 +53,14 @@ def update_task_info(
 
 
 # Assign task
+@router.patch("/{task_id}/assign")
+def assign_task(
+    task_id: int,
+    body: AssignTaskRequest,
+    db: Session = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user_from_token_or_cookie),
+):
+    return task_controller.assign_task(db, task_id, body, current_user.id)
 
 
 # update task status

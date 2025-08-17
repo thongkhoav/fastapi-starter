@@ -7,6 +7,7 @@ from app.models.room import Room
 from app.models.task import Task, TaskStatus
 from app.models.user import User
 from app.models.user_room import UserRoom
+from app.schemas.task.assign_task import AssignTaskRequest
 from app.schemas.task.create_task import CreateTaskRequest
 from app.schemas.task.task import TaskItemResponse
 from app.schemas.task.update_status import UpdateTaskStatusRequest
@@ -156,6 +157,37 @@ def update_task_status(
     # Update task status
 
     db_task.status = dto.status
+    db.add(db_task)
+    db.commit()
+    db.refresh(db_task)
+    return db_task
+
+
+def assign_task(
+    db: Session,
+    task_id: int,
+    dto: AssignTaskRequest,
+    current_user_id: int,
+):
+    db_task = db.query(Task).filter(Task.id == task_id).first()  # type: ignore
+    if not db_task or db_task.room_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
+        )
+
+    # Check assigned user is in room
+    is_room_member = room_service.is_room_member_by_id(
+        db, db_task.room_id, dto.user_id  # type: ignore
+    )
+    if not is_room_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Assigned user is not a member of the room",
+        )
+    # Update task status
+
+    db_task.user_id = dto.user_id
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
