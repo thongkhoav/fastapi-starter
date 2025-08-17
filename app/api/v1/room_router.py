@@ -6,6 +6,7 @@ from app.schemas.room.add_room_member import AddRoomMemberRequest
 from app.schemas.room.create_room_schema import CreateRoomRequest
 from app.schemas.room.join_room import JoinRoomRequest
 from app.schemas.room.remove_member import RemoveRoomMemberRequest
+from app.schemas.room.update_room_schema import UpdateRoomRequest
 from app.schemas.user.user_schema import CurrentUser, UserResponse
 from app.schemas.user.signup_schema import SignupRequest
 from app.schemas.user.login_schema import LoginResponse
@@ -91,6 +92,14 @@ def leave_room(
 
 
 # @Put('/:roomId'), update room
+@router.put("/{room_id}")
+def update_room(
+    room_id: int,
+    body: UpdateRoomRequest,
+    db: Session = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user_from_token_or_cookie),
+):
+    return room_controller.update_room(db, room_id, body, current_user.id)
 
 
 # Get, /

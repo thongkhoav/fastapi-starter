@@ -3,6 +3,7 @@ from app.schemas.response.message_response import MessageResponse
 from app.schemas.room.create_room_schema import CreateRoomRequest
 from sqlalchemy.orm import Session
 from app.schemas.room.remove_member import RemoveRoomMemberRequest
+from app.schemas.room.update_room_schema import UpdateRoomRequest
 from app.services import room_service
 from app.schemas.user.user_schema import CurrentUser
 
@@ -56,3 +57,10 @@ def remove_member(
 def leave_room(db: Session, room_id: int, current_user_id: int):
     room_service.leave_room(db, room_id, current_user_id)
     return MessageResponse(message="User left the room successfully")
+
+
+def update_room(
+    db: Session, room_id: int, body: UpdateRoomRequest, current_user_id: int
+):
+    room_service.update_room(db, room_id, body, current_user_id)
+    return MessageResponse(message="Room updated successfully")

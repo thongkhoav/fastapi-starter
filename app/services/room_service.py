@@ -12,6 +12,7 @@ from app.schemas.room.create_room_schema import (
 )
 from app.schemas.room.remove_member import RemoveRoomMemberRequest
 from app.schemas.room.room_schema import RoomUser
+from app.schemas.room.update_room_schema import UpdateRoomRequest
 from app.schemas.user.user_schema import BasicUser, CurrentUser
 import uuid
 
@@ -159,6 +160,30 @@ def create_room(
         ),
         invite_path=f"{read_env.INVITE_PREFIX}/{db_room.invite_code}",
     )
+
+
+def update_room(
+    db: Session, room_id: int, body: UpdateRoomRequest, current_user_id: int
+):
+    room = db.query(Room).filter(Room.id == room_id).first()  # type: ignore
+    if not room:
+        raise HTTPException(
+            status_code=404,
+            detail="Room not found",
+        )
+
+    # Check if current user is owner
+    is_owner = is_room_owner(db, room_id, current_user_id)
+    if not is_owner:
+        raise HTTPException(
+            status_code=403,
+            detail="Not a owner of the room",
+        )
+
+    room.name = body.name
+    room.description = body.description
+    db.commit()
+    db.refresh(room)
 
 
 def is_room_member_by_email(db: Session, room_id: int, email: str) -> bool:
