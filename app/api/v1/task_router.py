@@ -9,6 +9,7 @@ from app.schemas.room.join_room import JoinRoomRequest
 from app.schemas.room.remove_member import RemoveRoomMemberRequest
 from app.schemas.room.update_room_schema import UpdateRoomRequest
 from app.schemas.task.create_task import CreateTaskRequest
+from app.schemas.task.update_task import UpdateTaskrequest
 from app.schemas.user.user_schema import CurrentUser, UserResponse
 from app.db.database import get_db_session
 from app.services import user_service as user_service
@@ -38,6 +39,15 @@ def get_tasks(
     return task_controller.get_tasks(db, room_id, user_id)
 
 
-# Update task
+# Update task info
+@router.patch("/{task_id}/update-task-info")
+def update_task_info(
+    task_id: int,
+    body: UpdateTaskrequest,
+    db: Session = Depends(get_db_session),
+    current_user: CurrentUser = Depends(get_current_user_from_token_or_cookie),
+):
+    return task_controller.update_task(db, task_id, body, current_user.id)
+
 
 # Assign task

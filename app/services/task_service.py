@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.user_room import UserRoom
 from app.schemas.task.create_task import CreateTaskRequest
 from app.schemas.task.task import TaskItemResponse
+from app.schemas.task.update_task import UpdateTaskrequest
 from app.schemas.user.user_schema import BasicUser
 from app.services import room_service
 
@@ -54,13 +55,6 @@ def create_task(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Assigned user is not a member of the room",
             )
-
-        # Check assigned user is not the owner
-        if dto.assigned_user_id == current_user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Assigned user cannot be the room owner",
-            )
     # Create task
     db_task = Task(
         title=dto.title,
@@ -69,6 +63,59 @@ def create_task(
         status=TaskStatus.TODO,
         room_id=room.id,
     )
+    if dto.assigned_user_id:
+        db_task.user_id = dto.assigned_user_id
+    db.add(db_task)
+    db.commit()
+    db.refresh(db_task)
+    return db_task
+
+
+def update_task(
+    db: Session,
+    task_id: int,
+    dto: UpdateTaskrequest,
+    current_user_id: int,
+):
+    # Check task due_date is before now
+    if dto.due_date is not None and dto.due_date < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Due date must be in the future",
+        )
+
+    db_task = db.query(Task).filter(Task.id == task_id).first()  # type: ignore
+    if not db_task or db_task.room_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
+        )
+
+    # Check current user is owner
+    is_owner = room_service.is_room_owner(db, db_task.room_id, current_user_id)
+    if not is_owner:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to create task in this room",
+        )
+
+    # Check assigned user is in the room
+    if dto.assigned_user_id:
+        is_room_member = room_service.is_room_member_by_id(
+            db, db_task.room_id, dto.assigned_user_id  # type: ignore
+        )
+        if not is_room_member:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Assigned user is not a member of the room",
+            )
+    # Update task
+
+    db_task.title = dto.title
+    if dto.description is not None:
+        db_task.description = dto.description
+    if dto.due_date is not None:
+        db_task.due_date = dto.due_date
     if dto.assigned_user_id:
         db_task.user_id = dto.assigned_user_id
     db.add(db_task)

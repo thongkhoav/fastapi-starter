@@ -3,12 +3,20 @@ from app.schemas.response.message_response import MessageResponse
 from app.schemas.room.create_room_schema import CreateRoomRequest
 from sqlalchemy.orm import Session
 from app.schemas.task.create_task import CreateTaskRequest
+from app.schemas.task.update_task import UpdateTaskrequest
 from app.services import task_service
 
 
-def create_task(db: Session, room_dto: CreateTaskRequest, current_user_id: int):
-    task_service.create_task(db, room_dto, current_user_id)
+def create_task(db: Session, dto: CreateTaskRequest, current_user_id: int):
+    task_service.create_task(db, dto, current_user_id)
     return MessageResponse(message="Task created successfully")
+
+
+def update_task(
+    db: Session, task_id: int, dto: UpdateTaskrequest, current_user_id: int
+):
+    task_service.update_task(db, task_id, dto, current_user_id)
+    return MessageResponse(message="Task updated successfully")
 
 
 def get_tasks(db: Session, room_id: int, user_id: Optional[int] = None):
